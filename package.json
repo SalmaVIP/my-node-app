@@ -4,6 +4,7 @@
   "description": "A simple Node.js app with Jenkins pipeline",
   "main": "src/app.js",
   "scripts": {
+    "start": "node src/app.js",
     "test": "jest",
     "build": "echo 'Build script placeholder'"
   },
