@@ -1,0 +1,75 @@
+pipeline {
+    agent any
+    environment {
+        GIT_CREDENTIALS = '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'        // Token GitHub
+        SONARQUBE_CREDENTIALS = 'squ_dbfaa42cdc47cb436c92753044ab12da78259d32' // Token SonarQube
+    }
+    stages {
+        stage('Clone Repository') {
+            steps {
+                echo 'Cloning repository from GitHub...'
+                git branch: 'main', 
+                    credentialsId: "${GIT_CREDENTIALS}", 
+                    url: 'https://github.com/SalmaVIP/my-node-app.git'
+            }
+        }
+        stage('Install Dependencies') {
+            steps {
+                echo 'Installing dependencies...'
+                bat 'npm install'
+            }
+        }
+        stage('Run Tests') {
+            steps {
+                echo 'Running tests and generating coverage...'
+                bat 'npm test'
+            }
+        }
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube-Server') {
+                    script {
+                        def scannerHome = tool name: 'sonarqube-scanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
+                        bat """
+                            "${scannerHome}\\bin\\sonar-scanner.bat" ^
+                            -Dsonar.projectKey=my-node-app ^
+                            -Dsonar.host.url=http://127.0.0.1:9000 ^
+                            -Dsonar.login=${SONARQUBE_CREDENTIALS} ^
+                            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info ^
+                            -Dsonar.exclusions=**/node_modules/**,**/test/**
+                        """
+                    }
+                }
+            }
+        }
+        stage('Build Application') {
+            steps {
+                echo 'Building the application...'
+                bat 'npm run build'
+            }
+        }
+        stage('Deploy Application') {
+            steps {
+                echo 'Deploying application to the local directory...'
+                bat 'if not exist C:\\TP\\my-node-app1 mkdir C:\\TP\\my-node-app1'
+                bat 'xcopy /E /I . C:\\TP\\my-node-app1\\'
+            }
+        }
+        stage('Run Application') {
+            steps {
+                echo 'Running the application...'
+                script {
+                     bat 'start /B node C:\\TP\\my-node-app1\\src\\app.js'
+                }
+            }
+        }
+    }
+    post {
+        always {
+            echo 'Pipeline completed!'
+        }
+        failure {
+            echo 'Pipeline failed. Please check the logs for more details.'
+        }
+    }
+}
